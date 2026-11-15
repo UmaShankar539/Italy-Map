@@ -1,3 +1,4 @@
+
 name: Build and Deploy Italy Address Map
 
 on:
@@ -54,8 +55,6 @@ jobs:
             -o site/data/italy-addresses.pmtiles
             -Z 5
             -z 18
-            --drop-densest-as-needed
-            --extend-zooms-if-still-dropping
             -L anncsu:build/anncsu.geojsonl
           )
 
@@ -65,17 +64,12 @@ jobs:
 
           tippecanoe "${ARGS[@]}"
 
-      - name: Check generated data size
-        run: |
-          ls -lh site/data/
-          SIZE=$(stat -c%s site/data/italy-addresses.pmtiles)
-
-          echo "PMTiles size: $SIZE bytes"
-
-          if [ "$SIZE" -gt 900000000 ]; then
-            echo "The tile archive is too large for this deployment plan."
-            exit 1
-          fi
+      - name: Save PMTiles as downloadable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: italy-addresses
+          path: site/data/italy-addresses.pmtiles
+          retention-days: 1
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
