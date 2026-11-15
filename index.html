@@ -18,13 +18,13 @@
     }
 
     header {
-      height: 64px;
+      min-height: 64px;
       padding: 10px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      background: #fff;
+      background: white;
       box-shadow: 0 2px 8px #0002;
       position: relative;
       z-index: 2;
@@ -32,7 +32,7 @@
 
     .brand {
       font-size: 17px;
-      font-weight: 700;
+      font-weight: bold;
       color: #173b32;
     }
 
@@ -78,7 +78,7 @@
       z-index: 1;
       top: 78px;
       left: 12px;
-      width: 220px;
+      width: 230px;
       padding: 13px;
       background: white;
       border-radius: 9px;
@@ -104,7 +104,7 @@
     .blue { background: #2878dc; }
 
     #status {
-      color: #666;
+      color: #555;
       font-size: 11px;
       line-height: 1.5;
       margin-top: 10px;
@@ -125,7 +125,6 @@
 
     @media(max-width:600px) {
       header {
-        height: auto;
         min-height: 110px;
         align-items: flex-start;
         flex-direction: column;
@@ -142,7 +141,7 @@
 
       .panel {
         top: 125px;
-        width: 180px;
+        width: 190px;
         font-size: 12px;
       }
     }
@@ -197,7 +196,7 @@
   </label>
 
   <div id="status">
-    Connecting to Italy address database...
+    Starting map...
   </div>
 </div>
 
@@ -205,465 +204,489 @@
 <script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
 
 <script>
-  // ==========================================
-  // GOOGLE DRIVE PMTILES DATABASE
-  // ==========================================
+"use strict";
 
-  const DRIVE_URL =
-    "https://drive.usercontent.google.com/download?id=1jfG78ZV41RajX3qoNsG0-HP636c0s5P0&export=download&confirm=t";
+// ==========================================
+// GOOGLE DRIVE PMTILES DATABASE
+// ==========================================
 
-  const statusBox = document.getElementById("status");
+const DRIVE_URL =
+  "https://drive.usercontent.google.com/download?id=1jfG78ZV41RajX3qoNsG0-HP636c0s5P0&export=download&confirm=t";
 
-  function setStatus(message) {
-    statusBox.textContent = message;
-  }
+const statusBox = document.getElementById("status");
 
-  // ==========================================
-  // REGISTER PMTILES PROTOCOL
-  // ==========================================
+function setStatus(message) {
+  statusBox.textContent = message;
+}
 
-  const protocol = new pmtiles.Protocol();
+// ==========================================
+// CHECK LIBRARIES
+// ==========================================
 
-  maplibregl.addProtocol("pmtiles", protocol.tile);
+if (!window.maplibregl || !window.pmtiles) {
+  setStatus("ERROR: MapLibre or PMTiles library failed to load.");
+  throw new Error("Required map library is unavailable.");
+}
 
-  // ==========================================
-  // CREATE MAP
-  // ==========================================
+// ==========================================
+// REGISTER PMTILES PROTOCOL
+// ==========================================
 
-  const map = new maplibregl.Map({
-    container: "map",
+const protocol = new pmtiles.Protocol();
 
-    style: "https://tiles.openfreemap.org/styles/liberty",
+maplibregl.addProtocol("pmtiles", protocol.tile);
 
-    center: [12.5, 42.5],
+// ==========================================
+// CREATE MAP
+// ==========================================
 
-    zoom: 5,
+const map = new maplibregl.Map({
+  container: "map",
+  style: "https://tiles.openfreemap.org/styles/liberty",
+  center: [12.5, 42.5],
+  zoom: 5,
+  minZoom: 4,
+  maxZoom: 20
+});
 
-    minZoom: 4,
+map.addControl(
+  new maplibregl.NavigationControl(),
+  "top-right"
+);
 
-    maxZoom: 20
+map.addControl(
+  new maplibregl.ScaleControl(),
+  "bottom-right"
+);
+
+// ==========================================
+// POPUP INFORMATION
+// ==========================================
+
+function safeText(value) {
+  return value === null || value === undefined || value === ""
+    ? "Not available"
+    : String(value);
+}
+
+function showPopup(feature, coordinates) {
+  const p = feature.properties || {};
+
+  const source =
+    p.source === "ANNCSU"
+      ? "Official ANNCSU"
+      : "OpenStreetMap";
+
+  const content = document.createElement("div");
+
+  const heading = document.createElement("div");
+  heading.className = "popup-title";
+  heading.textContent = safeText(p.number);
+
+  content.appendChild(heading);
+
+  const fields = [
+    ["Street", p.street],
+    ["Municipality", p.city],
+    ["Postcode", p.postcode],
+    ["Source", source],
+    ["Accuracy method", p.method],
+    ["Latitude", coordinates.lat.toFixed(7)],
+    ["Longitude", coordinates.lng.toFixed(7)]
+  ];
+
+  fields.forEach(([label, value]) => {
+    const line = document.createElement("div");
+    line.textContent = label + ": " + safeText(value);
+    content.appendChild(line);
   });
 
-  map.addControl(
-    new maplibregl.NavigationControl(),
-    "top-right"
+  new maplibregl.Popup()
+    .setLngLat(coordinates)
+    .setDOMContent(content)
+    .addTo(map);
+}
+
+// ==========================================
+// ADD ADDRESS LAYERS
+// ==========================================
+
+function addAddressLayers(availableLayers) {
+
+  map.addSource("italy-addresses", {
+    type: "vector",
+    url: "pmtiles://" + DRIVE_URL
+  });
+
+  const hasAnncsu = availableLayers.includes("anncsu");
+  const hasOsm = availableLayers.includes("osm");
+
+  // ANNCSU POINTS
+
+  if (hasAnncsu) {
+    map.addLayer({
+      id: "anncsu-points",
+      type: "circle",
+      source: "italy-addresses",
+      "source-layer": "anncsu",
+      minzoom: 9,
+
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          9, 1.5,
+          16, 4
+        ],
+        "circle-color": "#13a65b",
+        "circle-stroke-color": "#ffffff",
+        "circle-stroke-width": 0.6
+      }
+    });
+
+    // ANNCSU HOUSE NUMBERS
+
+    map.addLayer({
+      id: "anncsu-labels",
+      type: "symbol",
+      source: "italy-addresses",
+      "source-layer": "anncsu",
+      minzoom: 16,
+
+      layout: {
+        "text-field": [
+          "to-string",
+          ["get", "number"]
+        ],
+        "text-size": 11,
+        "text-font": ["Noto Sans Regular"],
+        "text-offset": [0, 1.1],
+        "text-allow-overlap": false
+      },
+
+      paint: {
+        "text-color": "#087b3d",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.5
+      }
+    });
+  }
+
+  // OPENSTREETMAP POINTS
+
+  if (hasOsm) {
+    map.addLayer({
+      id: "osm-points",
+      type: "circle",
+      source: "italy-addresses",
+      "source-layer": "osm",
+      minzoom: 9,
+
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          9, 1.5,
+          16, 4
+        ],
+        "circle-color": "#2878dc",
+        "circle-stroke-color": "#ffffff",
+        "circle-stroke-width": 0.6
+      }
+    });
+
+    // OSM HOUSE NUMBERS
+
+    map.addLayer({
+      id: "osm-labels",
+      type: "symbol",
+      source: "italy-addresses",
+      "source-layer": "osm",
+      minzoom: 16,
+
+      layout: {
+        "text-field": [
+          "to-string",
+          ["get", "number"]
+        ],
+        "text-size": 11,
+        "text-font": ["Noto Sans Regular"],
+        "text-offset": [0, 1.1],
+        "text-allow-overlap": false
+      },
+
+      paint: {
+        "text-color": "#145cb5",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.5
+      }
+    });
+  }
+
+  // CLICKABLE LAYERS
+
+  const clickable = [];
+
+  if (hasAnncsu) clickable.push("anncsu-points");
+  if (hasOsm) clickable.push("osm-points");
+
+  clickable.forEach(layer => {
+
+    map.on("click", layer, event => {
+      if (event.features && event.features.length > 0) {
+        showPopup(event.features[0], event.lngLat);
+      }
+    });
+
+    map.on("mouseenter", layer, () => {
+      map.getCanvas().style.cursor = "pointer";
+    });
+
+    map.on("mouseleave", layer, () => {
+      map.getCanvas().style.cursor = "";
+    });
+  });
+
+  // DISPLAY LAYER AVAILABILITY
+
+  if (!hasAnncsu && !hasOsm) {
+    setStatus(
+      "Archive opened, but expected layers anncsu and osm were not found. Actual layers: " +
+      availableLayers.join(", ")
+    );
+  } else {
+    setStatus(
+      "PMTiles connected. Layers found: " +
+      availableLayers.join(", ") +
+      ". Address points appear from zoom 9; numbers from zoom 16."
+    );
+  }
+
+  // APPLY CHECKBOX SETTINGS
+
+  setVisibility(
+    "anncsu-points",
+    document.getElementById("annToggle").checked
   );
 
-  map.addControl(
-    new maplibregl.ScaleControl(),
-    "bottom-right"
+  setVisibility(
+    "anncsu-labels",
+    document.getElementById("annToggle").checked
   );
 
-  // ==========================================
-  // POPUP INFORMATION
-  // ==========================================
+  setVisibility(
+    "osm-points",
+    document.getElementById("osmToggle").checked
+  );
 
-  function safeText(value) {
-    return String(value || "Not available");
-  }
+  setVisibility(
+    "osm-labels",
+    document.getElementById("osmToggle").checked
+  );
+}
 
-  function showPopup(feature, coordinates) {
-    const p = feature.properties || {};
+// ==========================================
+// PMTILES DIAGNOSTIC AND DATABASE LOADING
+// ==========================================
 
-    const source =
-      p.source === "ANNCSU"
-        ? "Official ANNCSU"
-        : "OpenStreetMap";
+map.on("load", async () => {
 
-    const title = safeText(p.number);
+  setStatus("Checking Google Drive PMTiles archive...");
 
-    const content = document.createElement("div");
+  try {
 
-    const heading = document.createElement("div");
+    // Read the archive header and metadata first.
 
-    heading.className = "popup-title";
+    const archive = new pmtiles.PMTiles(DRIVE_URL);
 
-    heading.textContent = title;
+    setStatus("Reading PMTiles header...");
 
-    const fields = [
-      ["Street", p.street],
-      ["Municipality", p.city],
-      ["Postcode", p.postcode],
-      ["Source", source],
-      ["Accuracy method", p.method],
-      ["Latitude", coordinates.lat.toFixed(7)],
-      ["Longitude", coordinates.lng.toFixed(7)]
-    ];
+    const header = await archive.getHeader();
 
-    content.appendChild(heading);
+    console.log("PMTiles header:", header);
 
-    fields.forEach(([label, value]) => {
-      const line = document.createElement("div");
+    setStatus("Reading PMTiles layer information...");
 
-      line.textContent =
-        label + ": " + safeText(value);
+    const metadata = await archive.getMetadata();
 
-      content.appendChild(line);
-    });
+    console.log("PMTiles metadata:", metadata);
 
-    new maplibregl.Popup()
-      .setLngLat(coordinates)
-      .setDOMContent(content)
-      .addTo(map);
-  }
+    const availableLayers = (
+      metadata.vector_layers || []
+    ).map(layer => layer.id);
 
-  // ==========================================
-  // LOAD ADDRESS DATABASE
-  // ==========================================
+    console.log("Available vector layers:", availableLayers);
 
-  map.on("load", () => {
-
-    setStatus("Connecting to Google Drive address database...");
-
-    try {
-
-      // IMPORTANT:
-      // This is the remote Google Drive URL.
-      // The PMTiles library requests only the
-      // necessary byte ranges.
-
-      map.addSource("italy-addresses", {
-        type: "vector",
-
-        url: "pmtiles://" + DRIVE_URL
-      });
-
-      // ========================================
-      // ANNCSU ADDRESS POINTS
-      // ========================================
-
-      map.addLayer({
-        id: "anncsu-points",
-
-        type: "circle",
-
-        source: "italy-addresses",
-
-        "source-layer": "anncsu",
-
-        minzoom: 9,
-
-        paint: {
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            9, 1.5,
-            16, 4
-          ],
-
-          "circle-color": "#13a65b",
-
-          "circle-stroke-color": "#ffffff",
-
-          "circle-stroke-width": 0.6
-        }
-      });
-
-      // ========================================
-      // OPENSTREETMAP ADDRESS POINTS
-      // ========================================
-
-      map.addLayer({
-        id: "osm-points",
-
-        type: "circle",
-
-        source: "italy-addresses",
-
-        "source-layer": "osm",
-
-        minzoom: 9,
-
-        paint: {
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            9, 1.5,
-            16, 4
-          ],
-
-          "circle-color": "#2878dc",
-
-          "circle-stroke-color": "#ffffff",
-
-          "circle-stroke-width": 0.6
-        }
-      });
-
-      // ========================================
-      // ANNCSU HOUSE NUMBERS
-      // ========================================
-
-      map.addLayer({
-        id: "anncsu-labels",
-
-        type: "symbol",
-
-        source: "italy-addresses",
-
-        "source-layer": "anncsu",
-
-        minzoom: 16,
-
-        layout: {
-          "text-field": [
-            "to-string",
-            ["get", "number"]
-          ],
-
-          "text-size": 11,
-
-          "text-font": ["Noto Sans Regular"],
-
-          "text-offset": [0, 1.1],
-
-          "text-allow-overlap": false
-        },
-
-        paint: {
-          "text-color": "#087b3d",
-
-          "text-halo-color": "#ffffff",
-
-          "text-halo-width": 1.5
-        }
-      });
-
-      // ========================================
-      // OSM HOUSE NUMBERS
-      // ========================================
-
-      map.addLayer({
-        id: "osm-labels",
-
-        type: "symbol",
-
-        source: "italy-addresses",
-
-        "source-layer": "osm",
-
-        minzoom: 16,
-
-        layout: {
-          "text-field": [
-            "to-string",
-            ["get", "number"]
-          ],
-
-          "text-size": 11,
-
-          "text-font": ["Noto Sans Regular"],
-
-          "text-offset": [0, 1.1],
-
-          "text-allow-overlap": false
-        },
-
-        paint: {
-          "text-color": "#145cb5",
-
-          "text-halo-color": "#ffffff",
-
-          "text-halo-width": 1.5
-        }
-      });
-
-      // ========================================
-      // CLICK ADDRESS POINTS
-      // ========================================
-
-      const clickable = [
-        "anncsu-points",
-        "osm-points"
-      ];
-
-      clickable.forEach(layer => {
-
-        map.on("click", layer, event => {
-
-          const feature = event.features[0];
-
-          showPopup(feature, event.lngLat);
-
-        });
-
-        map.on("mouseenter", layer, () => {
-
-          map.getCanvas().style.cursor = "pointer";
-
-        });
-
-        map.on("mouseleave", layer, () => {
-
-          map.getCanvas().style.cursor = "";
-
-        });
-
-      });
-
+    if (!availableLayers.length) {
       setStatus(
-        "Map ready. Zoom in to see available civic numbers."
+        "Archive opened, but no vector_layers metadata was found. Check the archive format."
       );
-
-    } catch (error) {
-
-      console.error("Map initialization error:", error);
-
-      setStatus(
-        "Map initialization failed. Refresh and check the browser console."
-      );
-
+      return;
     }
 
-  });
+    // Check expected layer names.
 
-  // ==========================================
-  // DATABASE AND MAP ERRORS
-  // ==========================================
-
-  map.on("error", event => {
-
-    console.error("Map error:", event.error);
-
-    if (
-      event.sourceId === "italy-addresses" ||
-      (
-        event.error &&
-        String(event.error.message || "").toLowerCase().includes("pmtiles")
-      )
-    ) {
-
-      setStatus(
-        "Address database loading error. Check Google Drive access or network connection."
-      );
-
-    }
-
-  });
-
-  // ==========================================
-  // SHOW / HIDE ANNCSU
-  // ==========================================
-
-  function setVisibility(layer, visible) {
-
-    if (map.getLayer(layer)) {
-
-      map.setLayoutProperty(
-        layer,
-        "visibility",
-        visible ? "visible" : "none"
-      );
-
-    }
-
-  }
-
-  document
-    .getElementById("annToggle")
-    .addEventListener("change", event => {
-
-      setVisibility(
-        "anncsu-points",
-        event.target.checked
-      );
-
-      setVisibility(
-        "anncsu-labels",
-        event.target.checked
-      );
-
-    });
-
-  // ==========================================
-  // SHOW / HIDE OSM
-  // ==========================================
-
-  document
-    .getElementById("osmToggle")
-    .addEventListener("change", event => {
-
-      setVisibility(
-        "osm-points",
-        event.target.checked
-      );
-
-      setVisibility(
-        "osm-labels",
-        event.target.checked
-      );
-
-    });
-
-  // ==========================================
-  // COORDINATE NAVIGATION
-  // ==========================================
-
-  function goToCoordinates() {
-
-    const value = document
-      .getElementById("coordinates")
-      .value
-      .trim();
-
-    const match = value.match(
-      /(-?\d{1,2}(?:\.\d+)?)\s*[,; ]\s*(-?\d{1,3}(?:\.\d+)?)/
+    setStatus(
+      "Archive readable. Layers found: " +
+      availableLayers.join(", ") +
+      ". Preparing map..."
     );
 
-    if (!match) {
+    // Add source and available layers.
 
-      alert(
-        "Enter coordinates as latitude, longitude. Example: 42.12345, 13.12345"
-      );
+    addAddressLayers(availableLayers);
 
-      return;
+  } catch (error) {
 
-    }
+    console.error("PMTiles diagnostic failed:", error);
 
-    const lat = Number(match[1]);
-
-    const lon = Number(match[2]);
-
-    if (
-      !Number.isFinite(lat) ||
-      !Number.isFinite(lon) ||
-      lat < -90 ||
-      lat > 90 ||
-      lon < -180 ||
-      lon > 180
-    ) {
-
-      alert("Invalid coordinates.");
-
-      return;
-
-    }
-
-    map.flyTo({
-
-      center: [lon, lat],
-
-      zoom: 18,
-
-      speed: 1.2
-
-    });
+    setStatus(
+      "PMTiles ERROR: " +
+      (error.message || String(error))
+    );
 
   }
+});
 
-  document
+// ==========================================
+// SOURCE LOADING STATUS
+// ==========================================
+
+map.on("sourcedata", event => {
+
+  if (
+    event.sourceId === "italy-addresses" &&
+    event.isSourceLoaded
+  ) {
+    console.log("Italy address source loaded.");
+  }
+
+});
+
+// ==========================================
+// MAP AND PMTILES ERRORS
+// ==========================================
+
+map.on("error", event => {
+
+  console.error("Map error:", event.error);
+
+  const message =
+    event.error && event.error.message
+      ? event.error.message
+      : String(event.error || "Unknown map error");
+
+  if (
+    event.sourceId === "italy-addresses" ||
+    message.toLowerCase().includes("pmtiles")
+  ) {
+    setStatus("Address database error: " + message);
+  }
+
+});
+
+// ==========================================
+// SHOW / HIDE LAYERS
+// ==========================================
+
+function setVisibility(layer, visible) {
+
+  if (map.getLayer(layer)) {
+    map.setLayoutProperty(
+      layer,
+      "visibility",
+      visible ? "visible" : "none"
+    );
+  }
+
+}
+
+// ANNCSU TOGGLE
+
+document
+  .getElementById("annToggle")
+  .addEventListener("change", event => {
+
+    setVisibility("anncsu-points", event.target.checked);
+    setVisibility("anncsu-labels", event.target.checked);
+
+  });
+
+// OSM TOGGLE
+
+document
+  .getElementById("osmToggle")
+  .addEventListener("change", event => {
+
+    setVisibility("osm-points", event.target.checked);
+    setVisibility("osm-labels", event.target.checked);
+
+  });
+
+// ==========================================
+// COORDINATE NAVIGATION
+// ==========================================
+
+function goToCoordinates() {
+
+  const value = document
     .getElementById("coordinates")
-    .addEventListener("keydown", event => {
+    .value
+    .trim();
 
-      if (event.key === "Enter") {
+  const match = value.match(
+    /(-?\d{1,2}(?:\.\d+)?)\s*[,; ]\s*(-?\d{1,3}(?:\.\d+)?)/
+  );
 
-        goToCoordinates();
+  if (!match) {
+    alert(
+      "Enter latitude, longitude. Example: 42.12345, 13.12345"
+    );
+    return;
+  }
 
-      }
+  const lat = Number(match[1]);
+  const lon = Number(match[2]);
 
-    });
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lon) ||
+    lat < -90 ||
+    lat > 90 ||
+    lon < -180 ||
+    lon > 180
+  ) {
+    alert("Invalid coordinates.");
+    return;
+  }
+
+  map.flyTo({
+    center: [lon, lat],
+    zoom: 18,
+    speed: 1.2
+  });
+
+}
+
+document
+  .getElementById("coordinates")
+  .addEventListener("keydown", event => {
+
+    if (event.key === "Enter") {
+      goToCoordinates();
+    }
+
+  });
+
+// ==========================================
+// INITIAL STATUS
+// ==========================================
+
+map.on("style.load", () => {
+  console.log("Basemap style loaded.");
+});
 
 </script>
 
