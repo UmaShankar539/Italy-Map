@@ -13,10 +13,11 @@ jobs:
         run: |
           URL="https://drive.google.com/uc?export=download&id=1jfG78ZV41RajX3qoNsG0-HP636c0s5P0"
 
-          curl -L --range 0-1023 \
-            -D headers.txt \
-            -o /dev/null \
-            "$URL"
+          echo "Testing Google Drive partial download..."
 
-          echo "===== RESPONSE HEADERS ====="
-          grep -iE '^HTTP/|^content-range:|^content-length:|^content-type:' headers.txt
+          curl -sS -L \
+            --range 0-1023 \
+            -D - \
+            -o /dev/null \
+            -w "\nFINAL HTTP STATUS: %{http_code}\nDOWNLOADED: %{size_download} bytes\nFINAL URL: %{url_effective}\n" \
+            "$URL"
