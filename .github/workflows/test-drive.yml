@@ -1,5 +1,5 @@
 
-name: Test Google Drive PMTiles Streaming
+name: Test PMTiles Range Requests
 
 on:
   workflow_dispatch:
@@ -9,18 +9,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Test Google Drive partial download
+      - name: Test Google Drive PMTiles ranges
         run: |
           URL="https://drive.usercontent.google.com/download?id=1jfG78ZV41RajX3qoNsG0-HP636c0s5P0&export=download&confirm=t"
 
-          curl -sS -L \
-            --range 0-1023 \
-            -D headers.txt \
-            -o part.bin \
-            "$URL"
+          echo "TEST 1: First 1024 bytes"
+          curl -L -sS -D headers1.txt \
+            -H "Range: bytes=0-1023" \
+            -o part1.bin "$URL"
 
-          echo "===== RESPONSE HEADERS ====="
-          cat headers.txt
+          head -20 headers1.txt
+          wc -c part1.bin
 
-          echo "===== FILE SIZE ====="
-          wc -c part.bin
+          echo "TEST 2: PMTiles header bytes"
+          curl -L -sS -D headers2.txt \
+            -H "Range: bytes=127-255" \
+            -o part2.bin "$URL"
+
+          head -20 headers2.txt
+          wc -c part2.bin
+
+          echo "TEST 3: Archive metadata region"
+          curl -L -sS -D headers3.txt \
+            -H "Range: bytes=1024-2047" \
+            -o part3.bin "$URL"
+
+          head -20 headers3.txt
+          wc -c part3.bin
+
+          echo "ALL RANGE TESTS COMPLETED"
