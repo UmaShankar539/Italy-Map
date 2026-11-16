@@ -1,14 +1,126 @@
-      - name: Test PMTiles browser headers
+
+name: Test Large PMTiles Ranges
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test Google Drive large byte ranges
         run: |
           URL="https://drive.usercontent.google.com/download?id=1jfG78ZV41RajX3qoNsG0-HP636c0s5P0&export=download&confirm=t"
 
-          curl -L -sS -D headers.txt \
+          for RANGE in \
+            "1000000-1001023" \
+            "500000000-500001023" \
+            "1000000000-1000001023" \
+            "1286740000-1286741023"; do
+
+            echo "================================"
+            echo "TESTING RANGE: $RANGE"
+
+            curl -L -sS \
+              -D headers.txt \
+              -H "Range: bytes=$RANGE" \
+              -o result.bin "$URL"
+
+            grep -iE "^HTTP/|^content-range:|^content-length:" headers.txt | tail -5
+
+            echo -n "Downloaded bytes: "
+            wc -c < result.bin
+          done
+
+      - name: Test PMTiles header with website origin
+        run: |
+          URL="https://drive.usercontent.google.com/download?id=1jfG78ZV41RajX3qoNsG0-HP636c0s5P0&export=download&confirm=t"
+
+          echo "================================"
+          echo "TESTING PMTILES HEADER: bytes 0-126"
+
+          curl -L -sS \
+            -D header-headers.txt \
             -H "Origin: https://umashankar539.github.io" \
             -H "Range: bytes=0-126" \
             -o header.bin "$URL"
 
           echo "RESPONSE HEADERS:"
-          cat headers.txt
+          grep -iE "^HTTP/|^access-control-allow-origin:|^access-control-expose-headers:|^accept-ranges:|^content-range:|^content-length:" header-headers.txt | tail -10
 
-          echo "DOWNLOADED SIZE:"
+          echo -n "Downloaded header bytes: "
           wc -c < header.bin
+
+          echo "HEADER CONTENT:"
+          xxd -l 16 header.bin
+
+      - name: Read PMTiles metadata offset and test metadata range
+        run: |
+          python - <<'PY'
+          import requests
+          import struct
+
+          url = "https://drive.usercontent.google.com/download?id=1jfG78ZV41RajX3qoNsG0-HP636c0s5P0&export=download&confirm=t"
+
+          headers = {
+              "Origin": "https://umashankar539.github.io",
+              "Range": "bytes=0-126"
+          }
+
+          print("Downloading PMTiles header...")
+
+          r = requests.get(url, headers=headers, timeout=120)
+
+          print("Header HTTP status:", r.status_code)
+          print("Header size:", len(r.content))
+          print("CORS:", r.headers.get("Access-Control-Allow-Origin"))
+          print("Content-Range:", r.headers.get("Content-Range"))
+
+          if r.status_code != 206 or len(r.content) != 127:
+              raise Exception("PMTiles header range failed")
+
+          header = r.content
+
+          if header[:7] != b"PMTiles":
+              raise Exception("Invalid PMTiles file signature")
+
+          version = header[7]
+          metadata_offset = struct.unpack_from("<Q", header, 24)[0]
+          metadata_length = struct.unpack_from("<Q", header, 32)[0]
+
+          print("PMTiles version:", version)
+          print("Metadata offset:", metadata_offset)
+          print("Metadata length:", metadata_length)
+
+          if metadata_length == 0:
+              raise Exception("Metadata length is zero")
+
+          end = metadata_offset + metadata_length - 1
+
+          print("Testing metadata range:", metadata_offset, "-", end)
+
+          metadata_headers = {
+              "Origin": "https://umashankar539.github.io",
+              "Range": f"bytes={metadata_offset}-{end}"
+          }
+
+          m = requests.get(
+              url,
+              headers=metadata_headers,
+              timeout=180
+          )
+
+          print("Metadata HTTP status:", m.status_code)
+          print("Metadata downloaded:", len(m.content))
+          print("Metadata Content-Range:", m.headers.get("Content-Range"))
+          print("Metadata CORS:", m.headers.get("Access-Control-Allow-Origin"))
+
+          if m.status_code != 206:
+              raise Exception("Metadata range request failed")
+
+          if len(m.content) != metadata_length:
+              raise Exception("Metadata size mismatch")
+
+          print("SUCCESS: PMTiles header and metadata ranges work.")
+          PY
