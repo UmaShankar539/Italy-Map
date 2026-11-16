@@ -6,10 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Italy All-House Address Map</title>
 
-  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+  <link
+    href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+    rel="stylesheet"
+  >
 
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
@@ -100,8 +105,13 @@
       display: inline-block;
     }
 
-    .green { background: #13a65b; }
-    .blue { background: #2878dc; }
+    .green {
+      background: #13a65b;
+    }
+
+    .blue {
+      background: #2878dc;
+    }
 
     #status {
       color: #555;
@@ -169,6 +179,7 @@
 <div id="map"></div>
 
 <div class="panel">
+
   <b>Address sources</b>
 
   <div class="legend">
@@ -198,6 +209,7 @@
   <div id="status">
     Starting map...
   </div>
+
 </div>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -270,6 +282,7 @@ function safeText(value) {
 }
 
 function showPopup(feature, coordinates) {
+
   const p = feature.properties || {};
 
   const source =
@@ -296,15 +309,39 @@ function showPopup(feature, coordinates) {
   ];
 
   fields.forEach(([label, value]) => {
+
     const line = document.createElement("div");
-    line.textContent = label + ": " + safeText(value);
+
+    line.textContent =
+      label + ": " + safeText(value);
+
     content.appendChild(line);
+
   });
 
   new maplibregl.Popup()
     .setLngLat(coordinates)
     .setDOMContent(content)
     .addTo(map);
+
+}
+
+// ==========================================
+// LAYER VISIBILITY
+// ==========================================
+
+function setVisibility(layer, visible) {
+
+  if (map.getLayer(layer)) {
+
+    map.setLayoutProperty(
+      layer,
+      "visibility",
+      visible ? "visible" : "none"
+    );
+
+  }
+
 }
 
 // ==========================================
@@ -313,18 +350,27 @@ function showPopup(feature, coordinates) {
 
 function addAddressLayers(availableLayers) {
 
+  if (map.getSource("italy-addresses")) {
+    return;
+  }
+
   map.addSource("italy-addresses", {
     type: "vector",
     url: "pmtiles://" + DRIVE_URL
   });
 
-  const hasAnncsu = availableLayers.includes("anncsu");
-  const hasOsm = availableLayers.includes("osm");
+  const hasAnncsu =
+    availableLayers.includes("anncsu");
+
+  const hasOsm =
+    availableLayers.includes("osm");
 
   // ANNCSU POINTS
 
   if (hasAnncsu) {
+
     map.addLayer({
+
       id: "anncsu-points",
       type: "circle",
       source: "italy-addresses",
@@ -332,6 +378,7 @@ function addAddressLayers(availableLayers) {
       minzoom: 9,
 
       paint: {
+
         "circle-radius": [
           "interpolate",
           ["linear"],
@@ -339,15 +386,19 @@ function addAddressLayers(availableLayers) {
           9, 1.5,
           16, 4
         ],
+
         "circle-color": "#13a65b",
         "circle-stroke-color": "#ffffff",
         "circle-stroke-width": 0.6
+
       }
+
     });
 
     // ANNCSU HOUSE NUMBERS
 
     map.addLayer({
+
       id: "anncsu-labels",
       type: "symbol",
       source: "italy-addresses",
@@ -355,28 +406,37 @@ function addAddressLayers(availableLayers) {
       minzoom: 16,
 
       layout: {
+
         "text-field": [
           "to-string",
           ["get", "number"]
         ],
+
         "text-size": 11,
         "text-font": ["Noto Sans Regular"],
         "text-offset": [0, 1.1],
         "text-allow-overlap": false
+
       },
 
       paint: {
+
         "text-color": "#087b3d",
         "text-halo-color": "#ffffff",
         "text-halo-width": 1.5
+
       }
+
     });
+
   }
 
   // OPENSTREETMAP POINTS
 
   if (hasOsm) {
+
     map.addLayer({
+
       id: "osm-points",
       type: "circle",
       source: "italy-addresses",
@@ -384,6 +444,7 @@ function addAddressLayers(availableLayers) {
       minzoom: 9,
 
       paint: {
+
         "circle-radius": [
           "interpolate",
           ["linear"],
@@ -391,15 +452,19 @@ function addAddressLayers(availableLayers) {
           9, 1.5,
           16, 4
         ],
+
         "circle-color": "#2878dc",
         "circle-stroke-color": "#ffffff",
         "circle-stroke-width": 0.6
+
       }
+
     });
 
     // OSM HOUSE NUMBERS
 
     map.addLayer({
+
       id: "osm-labels",
       type: "symbol",
       source: "italy-addresses",
@@ -407,37 +472,59 @@ function addAddressLayers(availableLayers) {
       minzoom: 16,
 
       layout: {
+
         "text-field": [
           "to-string",
           ["get", "number"]
         ],
+
         "text-size": 11,
         "text-font": ["Noto Sans Regular"],
         "text-offset": [0, 1.1],
         "text-allow-overlap": false
+
       },
 
       paint: {
+
         "text-color": "#145cb5",
         "text-halo-color": "#ffffff",
         "text-halo-width": 1.5
+
       }
+
     });
+
   }
 
   // CLICKABLE LAYERS
 
   const clickable = [];
 
-  if (hasAnncsu) clickable.push("anncsu-points");
-  if (hasOsm) clickable.push("osm-points");
+  if (hasAnncsu) {
+    clickable.push("anncsu-points");
+  }
+
+  if (hasOsm) {
+    clickable.push("osm-points");
+  }
 
   clickable.forEach(layer => {
 
     map.on("click", layer, event => {
-      if (event.features && event.features.length > 0) {
-        showPopup(event.features[0], event.lngLat);
+
+      if (
+        event.features &&
+        event.features.length > 0
+      ) {
+
+        showPopup(
+          event.features[0],
+          event.lngLat
+        );
+
       }
+
     });
 
     map.on("mouseenter", layer, () => {
@@ -447,21 +534,26 @@ function addAddressLayers(availableLayers) {
     map.on("mouseleave", layer, () => {
       map.getCanvas().style.cursor = "";
     });
+
   });
 
-  // DISPLAY LAYER AVAILABILITY
+  // STATUS
 
   if (!hasAnncsu && !hasOsm) {
+
     setStatus(
       "Archive opened, but expected layers anncsu and osm were not found. Actual layers: " +
       availableLayers.join(", ")
     );
+
   } else {
+
     setStatus(
       "PMTiles connected. Layers found: " +
       availableLayers.join(", ") +
-      ". Address points appear from zoom 9; numbers from zoom 16."
+      ". Points appear from zoom 9; numbers from zoom 16."
     );
+
   }
 
   // APPLY CHECKBOX SETTINGS
@@ -485,21 +577,29 @@ function addAddressLayers(availableLayers) {
     "osm-labels",
     document.getElementById("osmToggle").checked
   );
+
 }
 
 // ==========================================
-// PMTILES DIAGNOSTIC AND DATABASE LOADING
+// PMTILES CONNECTION AND DIAGNOSTICS
 // ==========================================
 
 map.on("load", async () => {
 
-  setStatus("Checking Google Drive PMTiles archive...");
+  setStatus("Connecting to Google Drive PMTiles...");
 
   try {
 
-    // Read the archive header and metadata first.
+    // CREATE ARCHIVE
 
-    const archive = new pmtiles.PMTiles(DRIVE_URL);
+    const archive =
+      new pmtiles.PMTiles(DRIVE_URL);
+
+    // IMPORTANT: REGISTER ARCHIVE
+
+    protocol.add(archive);
+
+    // READ HEADER
 
     setStatus("Reading PMTiles header...");
 
@@ -507,40 +607,47 @@ map.on("load", async () => {
 
     console.log("PMTiles header:", header);
 
-    setStatus("Reading PMTiles layer information...");
+    // READ METADATA
+
+    setStatus("Reading address layer information...");
 
     const metadata = await archive.getMetadata();
 
     console.log("PMTiles metadata:", metadata);
 
+    // GET VECTOR LAYER NAMES
+
     const availableLayers = (
       metadata.vector_layers || []
     ).map(layer => layer.id);
 
-    console.log("Available vector layers:", availableLayers);
-
-    if (!availableLayers.length) {
-      setStatus(
-        "Archive opened, but no vector_layers metadata was found. Check the archive format."
-      );
-      return;
-    }
-
-    // Check expected layer names.
-
-    setStatus(
-      "Archive readable. Layers found: " +
-      availableLayers.join(", ") +
-      ". Preparing map..."
+    console.log(
+      "Available vector layers:",
+      availableLayers
     );
 
-    // Add source and available layers.
+    if (!availableLayers.length) {
+
+      setStatus(
+        "Archive opened, but no vector layers were found."
+      );
+
+      return;
+
+    }
+
+    setStatus(
+      "PMTiles connected. Found layers: " +
+      availableLayers.join(", ")
+    );
+
+    // ADD MAP LAYERS
 
     addAddressLayers(availableLayers);
 
   } catch (error) {
 
-    console.error("PMTiles diagnostic failed:", error);
+    console.error("PMTiles connection failed:", error);
 
     setStatus(
       "PMTiles ERROR: " +
@@ -548,6 +655,7 @@ map.on("load", async () => {
     );
 
   }
+
 });
 
 // ==========================================
@@ -560,13 +668,15 @@ map.on("sourcedata", event => {
     event.sourceId === "italy-addresses" &&
     event.isSourceLoaded
   ) {
+
     console.log("Italy address source loaded.");
+
   }
 
 });
 
 // ==========================================
-// MAP AND PMTILES ERRORS
+// MAP ERRORS
 // ==========================================
 
 map.on("error", event => {
@@ -582,46 +692,52 @@ map.on("error", event => {
     event.sourceId === "italy-addresses" ||
     message.toLowerCase().includes("pmtiles")
   ) {
-    setStatus("Address database error: " + message);
+
+    setStatus(
+      "Address database error: " + message
+    );
+
   }
 
 });
 
 // ==========================================
-// SHOW / HIDE LAYERS
-// ==========================================
-
-function setVisibility(layer, visible) {
-
-  if (map.getLayer(layer)) {
-    map.setLayoutProperty(
-      layer,
-      "visibility",
-      visible ? "visible" : "none"
-    );
-  }
-
-}
-
 // ANNCSU TOGGLE
+// ==========================================
 
 document
   .getElementById("annToggle")
   .addEventListener("change", event => {
 
-    setVisibility("anncsu-points", event.target.checked);
-    setVisibility("anncsu-labels", event.target.checked);
+    setVisibility(
+      "anncsu-points",
+      event.target.checked
+    );
+
+    setVisibility(
+      "anncsu-labels",
+      event.target.checked
+    );
 
   });
 
+// ==========================================
 // OSM TOGGLE
+// ==========================================
 
 document
   .getElementById("osmToggle")
   .addEventListener("change", event => {
 
-    setVisibility("osm-points", event.target.checked);
-    setVisibility("osm-labels", event.target.checked);
+    setVisibility(
+      "osm-points",
+      event.target.checked
+    );
+
+    setVisibility(
+      "osm-labels",
+      event.target.checked
+    );
 
   });
 
@@ -641,10 +757,13 @@ function goToCoordinates() {
   );
 
   if (!match) {
+
     alert(
       "Enter latitude, longitude. Example: 42.12345, 13.12345"
     );
+
     return;
+
   }
 
   const lat = Number(match[1]);
@@ -658,17 +777,24 @@ function goToCoordinates() {
     lon < -180 ||
     lon > 180
   ) {
+
     alert("Invalid coordinates.");
+
     return;
+
   }
 
   map.flyTo({
+
     center: [lon, lat],
     zoom: 18,
     speed: 1.2
+
   });
 
 }
+
+// ENTER KEY
 
 document
   .getElementById("coordinates")
@@ -681,11 +807,13 @@ document
   });
 
 // ==========================================
-// INITIAL STATUS
+// BASEMAP STATUS
 // ==========================================
 
 map.on("style.load", () => {
+
   console.log("Basemap style loaded.");
+
 });
 
 </script>
