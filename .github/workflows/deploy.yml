@@ -47,6 +47,7 @@ jobs:
         run: |
           mkdir -p site/data
           cp index.html site/index.html
+          cp test-drive.html site/test-drive.html
           cp build/stats.json site/data/stats.json
 
       - name: Generate Italy address PMTiles
