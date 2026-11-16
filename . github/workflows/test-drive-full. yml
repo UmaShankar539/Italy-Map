@@ -1,0 +1,28 @@
+
+name: Test Google Drive PMTiles Ranges
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test random byte ranges
+        run: |
+          URL="https://drive.usercontent.google.com/download?id=1jfG78ZV41RajX3qoNsG0-HP636c0s5P0&export=download&confirm=t"
+
+          for RANGE in "0-1023" "1000000-1001023" "500000000-500001023" "1286740000-1286741023"; do
+            echo "TEST RANGE: $RANGE"
+
+            curl -L -sS \
+              -D headers.txt \
+              -H "Range: bytes=$RANGE" \
+              -o result.bin "$URL"
+
+            grep -iE "HTTP/|content-range:|content-length:|content-type:" headers.txt | tail -5
+
+            echo -n "Actual downloaded bytes: "
+            wc -c < result.bin
+            echo "------------------------"
+          done
