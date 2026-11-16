@@ -1,0 +1,43 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Google Drive PMTiles Browser Test</title>
+</head>
+<body>
+  <h2>PMTiles Browser Test</h2>
+  <pre id="result">Testing...</pre>
+
+  <script>
+    const URL =
+      "https://drive.usercontent.google.com/download?id=1jfG78ZV41RajX3qoNsG0-HP636c0s5P0&export=download&confirm=t";
+
+    async function test() {
+      const output = document.getElementById("result");
+
+      try {
+        const response = await fetch(URL, {
+          headers: { Range: "bytes=0-126" }
+        });
+
+        const data = await response.arrayBuffer();
+
+        output.textContent =
+          "HTTP STATUS: " + response.status +
+          "\nDownloaded bytes: " + data.byteLength +
+          "\nContent-Range visible: " +
+          response.headers.get("Content-Range") +
+          "\nContent-Length visible: " +
+          response.headers.get("Content-Length") +
+          "\n\nBROWSER FETCH SUCCESS";
+      } catch (error) {
+        output.textContent =
+          "BROWSER FETCH FAILED\n\n" + error;
+      }
+    }
+
+    test();
+  </script>
+</body>
+</html>
