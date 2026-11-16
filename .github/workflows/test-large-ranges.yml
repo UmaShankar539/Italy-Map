@@ -1,26 +1,14 @@
-name: Test Large PMTiles Ranges
-
-on:
-  workflow_dispatch:
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Test large file ranges
+      - name: Test PMTiles browser headers
         run: |
           URL="https://drive.usercontent.google.com/download?id=1jfG78ZV41RajX3qoNsG0-HP636c0s5P0&export=download&confirm=t"
 
-          for RANGE in "1000000-1001023" "500000000-500001023" "1000000000-1000001023" "1286740000-1286741023"; do
-            echo "TESTING: $RANGE"
+          curl -L -sS -D headers.txt \
+            -H "Origin: https://umashankar539.github.io" \
+            -H "Range: bytes=0-126" \
+            -o header.bin "$URL"
 
-            curl -L -sS \
-              -D headers.txt \
-              -H "Range: bytes=$RANGE" \
-              -o result.bin "$URL"
+          echo "RESPONSE HEADERS:"
+          cat headers.txt
 
-            grep -iE "^HTTP/|^content-range:|^content-length:" headers.txt | tail -5
-
-            echo -n "Downloaded bytes: "
-            wc -c < result.bin
-          done
+          echo "DOWNLOADED SIZE:"
+          wc -c < header.bin
