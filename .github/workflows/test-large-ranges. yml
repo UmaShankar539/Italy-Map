@@ -27,3 +27,6 @@ jobs:
             wc -c < result.bin
 
           done
+
+
+
