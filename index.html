@@ -2,160 +2,105 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Italy All-House Address Map</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Italy All-House Address Map</title>
 
-  <link
-    href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
-    rel="stylesheet"
-  >
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; background: #f5f6f8; }
 
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f5f6f8;
-    }
+header {
+  min-height: 64px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: white;
+  box-shadow: 0 2px 8px #0002;
+  position: relative;
+  z-index: 2;
+}
 
-    header {
-      min-height: 64px;
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      background: white;
-      box-shadow: 0 2px 8px #0002;
-      position: relative;
-      z-index: 2;
-    }
+.brand { font-size: 17px; font-weight: bold; color: #173b32; }
+.subtitle { font-size: 11px; color: #777; margin-top: 3px; }
 
-    .brand {
-      font-size: 17px;
-      font-weight: bold;
-      color: #173b32;
-    }
+#search {
+  display: flex;
+  gap: 6px;
+  max-width: 430px;
+  width: 55%;
+}
 
-    .subtitle {
-      font-size: 11px;
-      color: #777;
-      margin-top: 3px;
-    }
+#coordinates {
+  width: 100%;
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid #ccc;
+  border-radius: 7px;
+  font-size: 14px;
+}
 
-    #search {
-      display: flex;
-      gap: 6px;
-      max-width: 430px;
-      width: 55%;
-    }
+button {
+  padding: 10px 13px;
+  border: 0;
+  border-radius: 7px;
+  background: #176b50;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
 
-    #coordinates {
-      width: 100%;
-      min-width: 0;
-      padding: 11px;
-      border: 1px solid #ccc;
-      border-radius: 7px;
-      font-size: 14px;
-    }
+#map { width: 100%; height: calc(100vh - 64px); }
 
-    button {
-      padding: 10px 13px;
-      border: 0;
-      border-radius: 7px;
-      background: #176b50;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
+.panel {
+  position: absolute;
+  z-index: 1;
+  top: 78px;
+  left: 12px;
+  width: 230px;
+  padding: 13px;
+  background: white;
+  border-radius: 9px;
+  box-shadow: 0 2px 10px #0003;
+  font-size: 13px;
+}
 
-    #map {
-      width: 100%;
-      height: calc(100vh - 64px);
-    }
+.legend { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+.dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+.green { background: #13a65b; }
+.blue { background: #2878dc; }
 
-    .panel {
-      position: absolute;
-      z-index: 1;
-      top: 78px;
-      left: 12px;
-      width: 230px;
-      padding: 13px;
-      background: white;
-      border-radius: 9px;
-      box-shadow: 0 2px 10px #0003;
-      font-size: 13px;
-    }
+#status {
+  color: #555;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 10px;
+  overflow-wrap: anywhere;
+}
 
-    .legend {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 10px 0;
-    }
+.maplibregl-popup-content {
+  border-radius: 9px;
+  min-width: 210px;
+  font-size: 13px;
+}
 
-    .dot {
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
-      display: inline-block;
-    }
+.popup-title { font-size: 17px; font-weight: bold; margin-bottom: 8px; }
 
-    .green {
-      background: #13a65b;
-    }
-
-    .blue {
-      background: #2878dc;
-    }
-
-    #status {
-      color: #555;
-      font-size: 11px;
-      line-height: 1.5;
-      margin-top: 10px;
-      overflow-wrap: anywhere;
-    }
-
-    .maplibregl-popup-content {
-      border-radius: 9px;
-      min-width: 210px;
-      font-size: 13px;
-    }
-
-    .popup-title {
-      font-size: 17px;
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-
-    @media(max-width:600px) {
-      header {
-        min-height: 110px;
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      #search {
-        width: 100%;
-        max-width: none;
-      }
-
-      #map {
-        height: calc(100vh - 110px);
-      }
-
-      .panel {
-        top: 125px;
-        width: 190px;
-        font-size: 12px;
-      }
-    }
-  </style>
+@media(max-width:600px) {
+  header {
+    min-height: 110px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  #search { width: 100%; max-width: none; }
+  #map { height: calc(100vh - 110px); }
+  .panel { top: 125px; width: 190px; font-size: 12px; }
+}
+</style>
 </head>
 
 <body>
@@ -167,11 +112,7 @@
   </div>
 
   <div id="search">
-    <input
-      id="coordinates"
-      placeholder="Enter latitude, longitude"
-      type="text"
-    >
+    <input id="coordinates" placeholder="Enter latitude, longitude" type="text">
     <button onclick="goToCoordinates()">GO</button>
   </div>
 </header>
@@ -179,7 +120,6 @@
 <div id="map"></div>
 
 <div class="panel">
-
   <b>Address sources</b>
 
   <div class="legend">
@@ -206,10 +146,7 @@
     Show OSM
   </label>
 
-  <div id="status">
-    Starting map...
-  </div>
-
+  <div id="status">Starting map...</div>
 </div>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -219,11 +156,11 @@
 "use strict";
 
 // ==========================================
-// GOOGLE DRIVE PMTILES DATABASE
+// RENDER PMTILES PROXY
 // ==========================================
 
-const DRIVE_URL =
-  "https://drive.usercontent.google.com/download?id=1jfG78ZV41RajX3qoNsG0-HP636c0s5P0&export=download&confirm=t";
+const PMTILES_URL =
+  "https://onedrive-pmtiles-proxy-2.onrender.com/file";
 
 const statusBox = document.getElementById("status");
 
@@ -245,7 +182,6 @@ if (!window.maplibregl || !window.pmtiles) {
 // ==========================================
 
 const protocol = new pmtiles.Protocol();
-
 maplibregl.addProtocol("pmtiles", protocol.tile);
 
 // ==========================================
@@ -261,15 +197,8 @@ const map = new maplibregl.Map({
   maxZoom: 20
 });
 
-map.addControl(
-  new maplibregl.NavigationControl(),
-  "top-right"
-);
-
-map.addControl(
-  new maplibregl.ScaleControl(),
-  "bottom-right"
-);
+map.addControl(new maplibregl.NavigationControl(), "top-right");
+map.addControl(new maplibregl.ScaleControl(), "bottom-right");
 
 // ==========================================
 // POPUP INFORMATION
@@ -282,20 +211,17 @@ function safeText(value) {
 }
 
 function showPopup(feature, coordinates) {
-
   const p = feature.properties || {};
 
-  const source =
-    p.source === "ANNCSU"
-      ? "Official ANNCSU"
-      : "OpenStreetMap";
+  const source = p.source === "ANNCSU"
+    ? "Official ANNCSU"
+    : "OpenStreetMap";
 
   const content = document.createElement("div");
 
   const heading = document.createElement("div");
   heading.className = "popup-title";
   heading.textContent = safeText(p.number);
-
   content.appendChild(heading);
 
   const fields = [
@@ -309,21 +235,15 @@ function showPopup(feature, coordinates) {
   ];
 
   fields.forEach(([label, value]) => {
-
     const line = document.createElement("div");
-
-    line.textContent =
-      label + ": " + safeText(value);
-
+    line.textContent = label + ": " + safeText(value);
     content.appendChild(line);
-
   });
 
   new maplibregl.Popup()
     .setLngLat(coordinates)
     .setDOMContent(content)
     .addTo(map);
-
 }
 
 // ==========================================
@@ -331,17 +251,13 @@ function showPopup(feature, coordinates) {
 // ==========================================
 
 function setVisibility(layer, visible) {
-
   if (map.getLayer(layer)) {
-
     map.setLayoutProperty(
       layer,
       "visibility",
       visible ? "visible" : "none"
     );
-
   }
-
 }
 
 // ==========================================
@@ -349,182 +265,103 @@ function setVisibility(layer, visible) {
 // ==========================================
 
 function addAddressLayers(availableLayers) {
-
-  if (map.getSource("italy-addresses")) {
-    return;
-  }
+  if (map.getSource("italy-addresses")) return;
 
   map.addSource("italy-addresses", {
     type: "vector",
-    url: "pmtiles://" + DRIVE_URL
+    url: "pmtiles://" + PMTILES_URL
   });
 
-  const hasAnncsu =
-    availableLayers.includes("anncsu");
-
-  const hasOsm =
-    availableLayers.includes("osm");
-
-  // ANNCSU POINTS
+  const hasAnncsu = availableLayers.includes("anncsu");
+  const hasOsm = availableLayers.includes("osm");
 
   if (hasAnncsu) {
-
     map.addLayer({
-
       id: "anncsu-points",
       type: "circle",
       source: "italy-addresses",
       "source-layer": "anncsu",
       minzoom: 9,
-
       paint: {
-
         "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          9, 1.5,
-          16, 4
+          "interpolate", ["linear"], ["zoom"],
+          9, 1.5, 16, 4
         ],
-
         "circle-color": "#13a65b",
         "circle-stroke-color": "#ffffff",
         "circle-stroke-width": 0.6
-
       }
-
     });
 
-    // ANNCSU HOUSE NUMBERS
-
     map.addLayer({
-
       id: "anncsu-labels",
       type: "symbol",
       source: "italy-addresses",
       "source-layer": "anncsu",
       minzoom: 16,
-
       layout: {
-
-        "text-field": [
-          "to-string",
-          ["get", "number"]
-        ],
-
+        "text-field": ["to-string", ["get", "number"]],
         "text-size": 11,
         "text-font": ["Noto Sans Regular"],
         "text-offset": [0, 1.1],
         "text-allow-overlap": false
-
       },
-
       paint: {
-
         "text-color": "#087b3d",
         "text-halo-color": "#ffffff",
         "text-halo-width": 1.5
-
       }
-
     });
-
   }
 
-  // OPENSTREETMAP POINTS
-
   if (hasOsm) {
-
     map.addLayer({
-
       id: "osm-points",
       type: "circle",
       source: "italy-addresses",
       "source-layer": "osm",
       minzoom: 9,
-
       paint: {
-
         "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          9, 1.5,
-          16, 4
+          "interpolate", ["linear"], ["zoom"],
+          9, 1.5, 16, 4
         ],
-
         "circle-color": "#2878dc",
         "circle-stroke-color": "#ffffff",
         "circle-stroke-width": 0.6
-
       }
-
     });
 
-    // OSM HOUSE NUMBERS
-
     map.addLayer({
-
       id: "osm-labels",
       type: "symbol",
       source: "italy-addresses",
       "source-layer": "osm",
       minzoom: 16,
-
       layout: {
-
-        "text-field": [
-          "to-string",
-          ["get", "number"]
-        ],
-
+        "text-field": ["to-string", ["get", "number"]],
         "text-size": 11,
         "text-font": ["Noto Sans Regular"],
         "text-offset": [0, 1.1],
         "text-allow-overlap": false
-
       },
-
       paint: {
-
         "text-color": "#145cb5",
         "text-halo-color": "#ffffff",
         "text-halo-width": 1.5
-
       }
-
     });
-
   }
-
-  // CLICKABLE LAYERS
 
   const clickable = [];
-
-  if (hasAnncsu) {
-    clickable.push("anncsu-points");
-  }
-
-  if (hasOsm) {
-    clickable.push("osm-points");
-  }
+  if (hasAnncsu) clickable.push("anncsu-points");
+  if (hasOsm) clickable.push("osm-points");
 
   clickable.forEach(layer => {
-
     map.on("click", layer, event => {
-
-      if (
-        event.features &&
-        event.features.length > 0
-      ) {
-
-        showPopup(
-          event.features[0],
-          event.lngLat
-        );
-
+      if (event.features && event.features.length > 0) {
+        showPopup(event.features[0], event.lngLat);
       }
-
     });
 
     map.on("mouseenter", layer, () => {
@@ -534,128 +371,63 @@ function addAddressLayers(availableLayers) {
     map.on("mouseleave", layer, () => {
       map.getCanvas().style.cursor = "";
     });
-
   });
 
-  // STATUS
-
   if (!hasAnncsu && !hasOsm) {
-
     setStatus(
       "Archive opened, but expected layers anncsu and osm were not found. Actual layers: " +
       availableLayers.join(", ")
     );
-
   } else {
-
     setStatus(
       "PMTiles connected. Layers found: " +
       availableLayers.join(", ") +
       ". Points appear from zoom 9; numbers from zoom 16."
     );
-
   }
 
-  // APPLY CHECKBOX SETTINGS
-
-  setVisibility(
-    "anncsu-points",
-    document.getElementById("annToggle").checked
-  );
-
-  setVisibility(
-    "anncsu-labels",
-    document.getElementById("annToggle").checked
-  );
-
-  setVisibility(
-    "osm-points",
-    document.getElementById("osmToggle").checked
-  );
-
-  setVisibility(
-    "osm-labels",
-    document.getElementById("osmToggle").checked
-  );
-
+  setVisibility("anncsu-points", document.getElementById("annToggle").checked);
+  setVisibility("anncsu-labels", document.getElementById("annToggle").checked);
+  setVisibility("osm-points", document.getElementById("osmToggle").checked);
+  setVisibility("osm-labels", document.getElementById("osmToggle").checked);
 }
 
 // ==========================================
-// PMTILES CONNECTION AND DIAGNOSTICS
+// LOAD PMTILES
 // ==========================================
 
 map.on("load", async () => {
-
-  setStatus("Connecting to Google Drive PMTiles...");
+  setStatus("Connecting to Italy address database...");
 
   try {
-
-    // CREATE ARCHIVE
-
-    const archive =
-      new pmtiles.PMTiles(DRIVE_URL);
-
-    // IMPORTANT: REGISTER ARCHIVE
-
+    const archive = new pmtiles.PMTiles(PMTILES_URL);
     protocol.add(archive);
 
-    // READ HEADER
-
     setStatus("Reading PMTiles header...");
-
     const header = await archive.getHeader();
-
     console.log("PMTiles header:", header);
 
-    // READ METADATA
-
     setStatus("Reading address layer information...");
-
     const metadata = await archive.getMetadata();
-
     console.log("PMTiles metadata:", metadata);
-
-    // GET VECTOR LAYER NAMES
 
     const availableLayers = (
       metadata.vector_layers || []
     ).map(layer => layer.id);
 
-    console.log(
-      "Available vector layers:",
-      availableLayers
-    );
+    console.log("Available vector layers:", availableLayers);
 
     if (!availableLayers.length) {
-
-      setStatus(
-        "Archive opened, but no vector layers were found."
-      );
-
+      setStatus("Archive opened, but no vector layers were found.");
       return;
-
     }
-
-    setStatus(
-      "PMTiles connected. Found layers: " +
-      availableLayers.join(", ")
-    );
-
-    // ADD MAP LAYERS
 
     addAddressLayers(availableLayers);
 
   } catch (error) {
-
     console.error("PMTiles connection failed:", error);
-
-    setStatus(
-      "PMTiles ERROR: " +
-      (error.message || String(error))
-    );
-
+    setStatus("PMTiles ERROR: " + (error.message || String(error)));
   }
-
 });
 
 // ==========================================
@@ -663,16 +435,12 @@ map.on("load", async () => {
 // ==========================================
 
 map.on("sourcedata", event => {
-
   if (
     event.sourceId === "italy-addresses" &&
     event.isSourceLoaded
   ) {
-
     console.log("Italy address source loaded.");
-
   }
-
 });
 
 // ==========================================
@@ -680,90 +448,52 @@ map.on("sourcedata", event => {
 // ==========================================
 
 map.on("error", event => {
-
   console.error("Map error:", event.error);
 
-  const message =
-    event.error && event.error.message
-      ? event.error.message
-      : String(event.error || "Unknown map error");
+  const message = event.error && event.error.message
+    ? event.error.message
+    : String(event.error || "Unknown map error");
 
   if (
     event.sourceId === "italy-addresses" ||
     message.toLowerCase().includes("pmtiles")
   ) {
-
-    setStatus(
-      "Address database error: " + message
-    );
-
+    setStatus("Address database error: " + message);
   }
-
 });
 
 // ==========================================
 // ANNCSU TOGGLE
 // ==========================================
 
-document
-  .getElementById("annToggle")
-  .addEventListener("change", event => {
-
-    setVisibility(
-      "anncsu-points",
-      event.target.checked
-    );
-
-    setVisibility(
-      "anncsu-labels",
-      event.target.checked
-    );
-
-  });
+document.getElementById("annToggle").addEventListener("change", event => {
+  setVisibility("anncsu-points", event.target.checked);
+  setVisibility("anncsu-labels", event.target.checked);
+});
 
 // ==========================================
 // OSM TOGGLE
 // ==========================================
 
-document
-  .getElementById("osmToggle")
-  .addEventListener("change", event => {
-
-    setVisibility(
-      "osm-points",
-      event.target.checked
-    );
-
-    setVisibility(
-      "osm-labels",
-      event.target.checked
-    );
-
-  });
+document.getElementById("osmToggle").addEventListener("change", event => {
+  setVisibility("osm-points", event.target.checked);
+  setVisibility("osm-labels", event.target.checked);
+});
 
 // ==========================================
 // COORDINATE NAVIGATION
 // ==========================================
 
 function goToCoordinates() {
-
-  const value = document
-    .getElementById("coordinates")
-    .value
-    .trim();
+  const value = document.getElementById("coordinates").value.trim();
 
   const match = value.match(
     /(-?\d{1,2}(?:\.\d+)?)\s*[,; ]\s*(-?\d{1,3}(?:\.\d+)?)/
   );
 
   if (!match) {
-
-    alert(
-      "Enter latitude, longitude. Example: 42.12345, 13.12345"
-    );
-
+    alert("Enter latitude, longitude. Example: 42.12345, 13.12345");
     return;
-
   }
 
   const lat = Number(match[1]);
@@ -772,50 +502,27 @@ function goToCoordinates() {
   if (
     !Number.isFinite(lat) ||
     !Number.isFinite(lon) ||
-    lat < -90 ||
-    lat > 90 ||
-    lon < -180 ||
-    lon > 180
+    lat < -90 || lat > 90 ||
+    lon < -180 || lon > 180
   ) {
-
     alert("Invalid coordinates.");
-
     return;
-
   }
 
   map.flyTo({
-
     center: [lon, lat],
     zoom: 18,
     speed: 1.2
-
   });
-
 }
 
-// ENTER KEY
-
-document
-  .getElementById("coordinates")
-  .addEventListener("keydown", event => {
-
-    if (event.key === "Enter") {
-      goToCoordinates();
-    }
-
-  });
-
-// ==========================================
-// BASEMAP STATUS
-// ==========================================
-
-map.on("style.load", () => {
-
-  console.log("Basemap style loaded.");
-
+document.getElementById("coordinates").addEventListener("keydown", event => {
+  if (event.key === "Enter") goToCoordinates();
 });
 
+map.on("style.load", () => {
+  console.log("Basemap style loaded.");
+});
 </script>
 
 </body>
